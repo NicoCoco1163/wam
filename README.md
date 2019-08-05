@@ -1,0 +1,1 @@
+### WAM - wow-addons-manager
