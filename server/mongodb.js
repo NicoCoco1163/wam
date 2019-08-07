@@ -2,7 +2,7 @@
  * @file: mongodb.js
  * @author: NicoCoco1163
  * @create_at: 2019-07-31 17:21:38
- * @update_at: 2019-08-01 17:33:35
+ * @update_at: 2019-08-07 14:57:32
  */
 
 const MongoClient = require('mongodb').MongoClient;
@@ -13,57 +13,56 @@ const dbName = 'wam';
 let client;
 
 const ADDON = 'addon';
-const ADDON_DOWNLOAD = 'addon.download';
 
 function compose(mongoClient) {
     const db = mongoClient.db(dbName);
 
+    // name as unique index
+    db
+        .collection(ADDON)
+        .createIndex({name: 1}, {unique: true});
+
     return {
         getAddons: function (query) {
+            query = {
+                // fuzzy search
+                name: new RegExp(query, 'gi')
+            };
+
             return new Promise((resolve, reject) => {
                 db
                     .collection(ADDON)
-                    .find({name: query})
+                    .find(query)
                     // TODO: order and others
                     .toArray()
                     .then(resolve)
                     .catch(reject);
             });
         },
-        getAddonDownload: function (query) {
+        insertAddon: function (query, payload) {
             return new Promise((resolve, reject) => {
                 db
-                    .collection(ADDON_DOWNLOAD)
-                    .findOne({name: query})
-                    .then(resolve)
-                    .catch(reject);
+                    .collection(ADDON)
+                    .findOneAndUpdate(
+                        {name: query},
+                        {$set: {s: payload}},
+                        {upsert: true},
+                    function (err, res) {
+                        if (err) {
+                            return reject(err);
+                        }
+
+                        resolve(res.value);
+                    });
+
+                    // .insertOne({
+                    //     name: query,
+                    //     s: payload
+                    // })
+                    // .then(resolve)
+                    // .catch(reject);
             });
-        },
-        insertAddon: function () {
-
-        },
-        updateAddon: function () {
-
-        },
-        updateAddonDownload: function () {
-
         }
-        // findOne: function (query, options = {}) {
-        //     return new Promise((resolve, reject) => {
-        //         mongoClient
-        //             .findOne(query, options)
-        //             .then(resolve)
-        //             .catch(reject);
-        //     });
-        // },
-        // find: function (query, options = {}) {
-        //     return new Promise((resolve, reject) => {
-        //         mongoClient
-        //             .find(query)
-        //             .then(resolve)
-        //             .catch(reject);
-        //     });
-        // }
     };
 }
 
